@@ -1,0 +1,11 @@
+{
+    "target_window_title": "阴阳师-网易游戏",
+    "hook_window_title": "hook",
+    "new_width": 568,
+    "new_height": 320,
+    "transparency": 255,
+    "log_debug_filename": "log/debug.log",
+    "log_error_filename": "log/error.log",
+    "save_img_name": "screenshot.png"
+  }
+  
