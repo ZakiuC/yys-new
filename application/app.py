@@ -89,8 +89,22 @@ class Application:
 
                         self.img_show = [img_resize, img_gray, img_blur, img_canny, img_contour, img_stack]
                         
-                        result = self.match(img_origin, "static/data/template/login_tag.json")
-                        
+                        result = self.match(img_origin, "static/data/template/login_enter_btn.json")
+                        if result != None:
+                            # 原始图像的尺寸
+                            orig_width = img_origin.shape[1]
+                            orig_height = img_origin.shape[0]
+
+                            # 计算缩放因子
+                            scale_x = self.new_width / orig_width
+                            scale_y = self.new_height / orig_height
+
+                            # 计算映射后的坐标
+                            mapped_top_left = (int(result[0][0] * scale_x), int(result[0][1] * scale_y))
+                            mapped_bottom_right = (int(result[1][0] * scale_x), int(result[1][1] * scale_y))
+
+                            cv2.rectangle(self.img_show[self.current_index], mapped_top_left, mapped_bottom_right, (0, 0, 255), 1)
+
                         # 轮廓检测
                         # contours, _ = cv2.findContours(img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
                         # for cnt in contours:
@@ -232,7 +246,7 @@ class Application:
         # 读取目标图片
         if img is None:
             self.logger.error("无法加载图像")
-            return False
+            return None
         img = cv2.resize(img, (1136, 640))
             
         # 读取 JSON 数据
@@ -251,7 +265,7 @@ class Application:
         roi = img[y: y + height + extra_height, x: x + width + extra_width]
         if roi.size == 0:
             self.logger.error("截取的区域无效，请检查提供的坐标和图像尺寸")
-            return False
+            return None
 
         # 进行模板匹配
         result = cv2.matchTemplate(roi, target, cv2.TM_CCOEFF_NORMED)
@@ -260,11 +274,11 @@ class Application:
         # 检查匹配得分是否足够高
         if max_val < 0.8:
             self.logger.error("未能找到匹配目标，最高匹配得分：{}".format(max_val))
-            return False
+            return None
 
         # 计算匹配区域的左上角和右下角坐标
         top_left = (max_loc[0] + x, max_loc[1] + y)
         bottom_right = (top_left[0] + width, top_left[1] + height)
         
         self.logger.info(f"找到目标，匹配度：{max_val:.1f}, 结果坐标：{str(top_left)}到{str(bottom_right)}")
-        return True
+        return top_left, bottom_right
