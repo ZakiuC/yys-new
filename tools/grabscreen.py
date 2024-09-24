@@ -55,9 +55,8 @@ class GrabScreen:
 
             # 使用新的截图方法
             img = self.capture(hwnd)
-            self.error_printed = False  # 重置错误打印状态
+
             return cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
         
         except Exception as e:
             return None
-
