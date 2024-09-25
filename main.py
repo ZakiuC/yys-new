@@ -11,6 +11,6 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--config', type=str, default='conf/config.json', help='配置文件的路径')
     args = parser.parse_args()
     
-    useAdminRun()  # 如果需要管理员权限，取消注释这一行
+    # useAdminRun()  # 如果需要管理员权限，取消注释这一行
     
     main(args.config)

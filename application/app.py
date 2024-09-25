@@ -11,13 +11,74 @@ import numpy as np
 
 from tools.grabscreen import GrabScreen
 from tools.image_processing import create_error_img, stack_imgs
-from application.app_state import AppState
+from application.app_state import AppState, YysScene
 from tools.logger import LogManager
 from tools.key_listener import KeyListener
 from tools.window import set_window_style
 from tools.config_loader import ConfigLoader
+from application.detector import ImageDetector
 
+class yysManager:
+    def __init__(self):
+        self.logger = LogManager(name="yysManager")
+        self.game_scence = YysScene.UNKNOW_SCENCE
+        self.game_scence_last = YysScene.UNKNOW_SCENCE
+        self.targets = []
+        self.target_status = {}
+        
+    def scence_update(self, founds):
+        """
+        场景更新
+        """
+        if self.game_scence == YysScene.UNKNOW_SCENCE:
+            self.add_unique_target("login_tag", YysScene.LOGIN_SCENCE, False)
+            self.add_unique_target("login_enter_btn", YysScene.LOGIN_SCENCE, False)
+            self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
+        elif self.game_scence == YysScene.LOGIN_SCENCE:
+            self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
+                
+        for target in self.targets:
+            if target in founds:
+                self.update_target_status(target, True)
+                # self.scence_switch(self.target_status[target]['target_scene'])
+                # break
+            else:
+                self.update_target_status(target, False)
 
+    def update_target_status(self, target, found):
+        """
+        更新目标的找到状态。
+        """
+        if target in self.target_status:
+            if self.target_status[target]['found'] != found:
+                self.target_status[target]['found'] = found
+                self.logger.info(f"更新目标状态: {target}, 状态: {'已找到' if found else '未找到'}")
+        else:
+            self.logger.error(f"目标 {target} 不存在，无法更新状态")
+        
+    def scence_switch(self, target_scence):
+        """
+        场景切换
+        """
+        self.game_scence_last = self.game_scence
+        self.game_scence = target_scence
+        self.targets.clear()    # 切换场景后清空目标
+        self.target_status.clear()  # 切换场景后清空状态
+        self.logger.info(f"场景更新至{target_scence.get_description('cn')}")
+        
+    def add_unique_target(self, target, target_scene = YysScene.UNKNOW_SCENCE, found = False):
+        """
+        添加不重复的目标到targets中。
+        """
+        if target not in self.targets:
+            self.targets.append(target)
+            self.target_status[target] = {
+                'target': target,
+                'found': found,
+                'target_scene': target_scene
+            }
+            self.logger.info(f"添加目标: {target}, 指向 {target_scene.get_description('cn')}")
+                    
 class Application:
     """
     应用类
@@ -27,6 +88,8 @@ class Application:
         self.config_loader = ConfigLoader(config_path)
         self.grab = GrabScreen()
         self.key_listener = KeyListener(self)
+        self.manager = yysManager()
+        
             
         self.target_window_title = self.config_loader.get("target_window_title")
         self.hook_window_title = self.config_loader.get("hook_window_title")
@@ -36,6 +99,8 @@ class Application:
         self.logger.log_debug_filename = self.config_loader.get("log_debug_filename")
         self.logger.log_error_filename = self.config_loader.get("log_error_filename")
         self.save_img_name = self.config_loader.get("save_img_name")
+        template_dir = self.config_loader.get("template_dir")
+        template_config = self.config_loader.get("template_config")
         
         self.running = True
         self.style_set = False
@@ -45,6 +110,7 @@ class Application:
         self.scene_text = "unknown"
         self.frame_timestamps = queue.Queue()
         self.state = AppState.NOT_FOUND_WINDOW
+        self.detector = ImageDetector(template_dir, template_config, self.new_width, self.new_height)
         self.setup_directories()
 
         self.logger.info("应用程序初始化，配置文件路径：%s", config_path)
@@ -77,33 +143,29 @@ class Application:
                         self.state = AppState.RUNNING
                     self.logger.clear_error_message("未找到目标窗口")  # 重置error
                     if self.state == AppState.RUNNING:
-                        # 调整图像大小以适应新的分辨率
-                        img_resize = cv2.resize(img_origin, (self.new_width, self.new_height))
-                        # 图像处理
-                        img_gray = cv2.cvtColor(img_resize, cv2.COLOR_BGR2GRAY)
-                        img_blur = cv2.GaussianBlur(img_gray, (7,7), 1)
-                        img_canny = cv2.Canny(img_blur, 50, 50)
-                        img_blank = np.zeros_like(img_resize)
-                        img_contour = img_resize.copy()
-                        img_stack = stack_imgs(0.6, ([img_resize, img_gray, img_blur], [img_canny, img_contour, img_blank]))
-
-                        self.img_show = [img_resize, img_gray, img_blur, img_canny, img_contour, img_stack]
+                        self.img_show = self.detector.process(img_origin)
                         
-                        result = self.match(img_origin, "static/data/template/login_enter_btn.json")
-                        if result != None:
-                            # 原始图像的尺寸
-                            orig_width = img_origin.shape[1]
-                            orig_height = img_origin.shape[0]
+                        founds = []
+                        for target in self.manager.targets:
+                            result = self.detector.detect(img_origin, target)
+                            if result != None:
+                                founds.append(target)
+                                # 原始图像的尺寸
+                                orig_width = img_origin.shape[1]
+                                orig_height = img_origin.shape[0]
 
-                            # 计算缩放因子
-                            scale_x = self.new_width / orig_width
-                            scale_y = self.new_height / orig_height
+                                # 计算缩放因子
+                                scale_x = self.new_width / orig_width
+                                scale_y = self.new_height / orig_height
 
-                            # 计算映射后的坐标
-                            mapped_top_left = (int(result[0][0] * scale_x), int(result[0][1] * scale_y))
-                            mapped_bottom_right = (int(result[1][0] * scale_x), int(result[1][1] * scale_y))
+                                # 计算映射后的坐标
+                                mapped_top_left = (int(result[0][0] * scale_x), int(result[0][1] * scale_y))
+                                mapped_bottom_right = (int(result[1][0] * scale_x), int(result[1][1] * scale_y))
 
-                            cv2.rectangle(self.img_show[self.current_index], mapped_top_left, mapped_bottom_right, (0, 0, 255), 1)
+                                cv2.rectangle(self.img_show[self.current_index], mapped_top_left, mapped_bottom_right, (0, 0, 255), 1)
+                               
+                        self.manager.scence_update(founds)
+                        self.scene_text = self.manager.game_scence.get_description('en')
 
                         # 轮廓检测
                         # contours, _ = cv2.findContours(img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -242,43 +304,3 @@ class Application:
         """
         self.running = False
     
-    def match(self, img, target_path):
-        # 读取目标图片
-        if img is None:
-            self.logger.error("无法加载图像")
-            return None
-        img = cv2.resize(img, (1136, 640))
-            
-        # 读取 JSON 数据
-        with open(target_path, 'r') as file:
-            data = json.load(file)
-            target_data = base64.b64decode(data['data'])
-            target_array = np.frombuffer(target_data, dtype=np.uint8)
-            target = cv2.imdecode(target_array, cv2.IMREAD_COLOR)
-
-        # 读取左上角坐标，并增加额外的宽度和高度范围
-        x, y = data['lt_x'], data['lt_y']
-        width, height = data['width'], data['height']
-        extra_width, extra_height = 10, 10
-            
-        # 截取目标可能在的区域
-        roi = img[y: y + height + extra_height, x: x + width + extra_width]
-        if roi.size == 0:
-            self.logger.error("截取的区域无效，请检查提供的坐标和图像尺寸")
-            return None
-
-        # 进行模板匹配
-        result = cv2.matchTemplate(roi, target, cv2.TM_CCOEFF_NORMED)
-        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-        
-        # 检查匹配得分是否足够高
-        if max_val < 0.8:
-            self.logger.error("未能找到匹配目标，最高匹配得分：{}".format(max_val))
-            return None
-
-        # 计算匹配区域的左上角和右下角坐标
-        top_left = (max_loc[0] + x, max_loc[1] + y)
-        bottom_right = (top_left[0] + width, top_left[1] + height)
-        
-        self.logger.info(f"找到目标，匹配度：{max_val:.1f}, 结果坐标：{str(top_left)}到{str(bottom_right)}")
-        return top_left, bottom_right

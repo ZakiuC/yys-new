@@ -6,6 +6,8 @@
     "transparency": 255,
     "log_debug_filename": "log/debug.log",
     "log_error_filename": "log/error.log",
-    "save_img_name": "screenshot.png"
+    "save_img_name": "screenshot.png",
+    "template_dir": "static/data/template",
+    "template_config": "static/data/template.json"
   }
   

@@ -1,0 +1,39 @@
+{
+    "templates": [
+        {
+            "name": "login_tag",
+            "file": "login_tag.json",
+            "description": "登陆界面适龄提示的标志"
+        },
+        {
+            "name": "login_enter_btn",
+            "file": "login_enter_btn.json",
+            "description": "登陆界面进入游戏的按钮"
+        },
+        {
+            "name": "index_buff_btn",
+            "file": "index_buff_btn.json",
+            "description": "庭院的加成按钮"
+        },
+        {
+            "name": "index_moments_btn",
+            "file": "index_moments_btn.json",
+            "description": "庭院的友人帐按钮"
+        },
+        {
+            "name": "index_letter_btn",
+            "file": "index_letter_btn.json",
+            "description": "庭院的信箱按钮"
+        },
+        {
+            "name": "index_chat_btn",
+            "file": "index_chat_btn.json",
+            "description": "庭院的聊天按钮"
+        },
+        {
+            "name": "index_index2_btn",
+            "file": "index_index2_btn.json",
+            "description": "庭院的町中按钮"
+        }
+    ]
+}
