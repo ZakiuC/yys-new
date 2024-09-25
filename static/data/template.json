@@ -34,6 +34,21 @@
             "name": "index_index2_btn",
             "file": "index_index2_btn.json",
             "description": "庭院的町中按钮"
+        },
+        {
+            "name": "index_explore_btn",
+            "file": "index_explore_btn.json",
+            "description": "庭院的探索按钮"
+        },
+        {
+            "name": "explore_tag",
+            "file": "explore_tag.json",
+            "description": "探索的“妖”标志"
+        },
+        {
+            "name": "index2_index_btn",
+            "file": "index2_index_btn.json",
+            "description": "町中的返回庭院的按钮"
         }
     ]
 }

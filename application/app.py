@@ -34,14 +34,27 @@ class yysManager:
             self.add_unique_target("login_tag", YysScene.LOGIN_SCENCE, False)
             self.add_unique_target("login_enter_btn", YysScene.LOGIN_SCENCE, False)
             self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
+            self.add_unique_target("index_explore_btn", YysScene.INDEX_SCENCE, False)
+            self.add_unique_target("explore_tag", YysScene.EXPLORE_SCENCE, False)
+            self.add_unique_target("index2_index_btn", YysScene.INDEX_2_SCENCE, False)
         elif self.game_scence == YysScene.LOGIN_SCENCE:
             self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
+            self.add_unique_target("index_explore_btn", YysScene.INDEX_SCENCE, False)
+        elif self.game_scence == YysScene.INDEX_SCENCE:
+            self.add_unique_target("explore_tag", YysScene.EXPLORE_SCENCE, False)
+            self.add_unique_target("index2_index_btn", YysScene.INDEX_2_SCENCE, False)
+        elif self.game_scence == YysScene.INDEX_2_SCENCE:
+            self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
+            self.add_unique_target("index_explore_btn", YysScene.INDEX_SCENCE, False)
+        elif self.game_scence == YysScene.EXPLORE_SCENCE:
+            self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
+            self.add_unique_target("index_explore_btn", YysScene.INDEX_SCENCE, False)
                 
         for target in self.targets:
             if target in founds:
                 self.update_target_status(target, True)
-                # self.scence_switch(self.target_status[target]['target_scene'])
-                # break
+                self.scence_switch(self.target_status[target]['target_scene'])
+                break
             else:
                 self.update_target_status(target, False)
 

@@ -138,14 +138,37 @@ class ImageDetector:
         # 读取左上角坐标，并增加额外的宽度和高度范围
         x, y = data['lt_x'], data['lt_y']
         width, height = data['width'], data['height']
+        is_all_scan = data['is_all_scan']
         extra_width, extra_height = 20, 20
             
         # 截取目标可能在的区域
-        roi = img[y: y + height + extra_height, x: x + width + extra_width]
+        if is_all_scan:
+            # 根据x, y的值调整起始点和截取的宽度、高度
+            start_x = 0 if x == 0 else x
+            start_y = 0 if y == 0 else y
+            end_x = img.shape[1] if x == 0 else x + width + extra_width
+            end_y = img.shape[0] if y == 0 else y + height + extra_height
+
+            # 确保不超过图像边界
+            end_x = min(end_x, img.shape[1])
+            end_y = min(end_y, img.shape[0])
+
+            # 截取图像
+            roi = img[start_y:end_y, start_x:end_x]
+        else:
+            # 直接截取指定区域，确保不超过图像边界
+            start_x = x
+            start_y = y
+            end_x = min(x + width + extra_width, img.shape[1])
+            end_y = min(y + height + extra_height, img.shape[0])
+
+            roi = img[start_y:end_y, start_x:end_x]
+
         if roi.size == 0:
             self.logger.error("截取的区域无效，请检查提供的坐标和图像尺寸")
             return None
-        cv2.imshow('debug', roi)
+        
+        # cv2.imshow('debug', roi)
         # 进行模板匹配
         result = cv2.matchTemplate(roi, target, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
