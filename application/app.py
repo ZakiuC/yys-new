@@ -10,87 +10,38 @@ import cv2
 import numpy as np
 
 from tools.grabscreen import GrabScreen
-from tools.image_processing import create_error_img, stack_imgs
-from application.app_state import AppState, YysScene
+from tools.image_processing import create_error_img
+from application.app_state import AppState
 from tools.logger import LogManager
 from tools.key_listener import KeyListener
 from tools.window import set_window_style
 from tools.config_loader import ConfigLoader
 from application.detector import ImageDetector
+from application.scene_context import SceneContext
 
 class yysManager:
     def __init__(self):
         self.logger = LogManager(name="yysManager")
-        self.game_scence = YysScene.UNKNOW_SCENCE
-        self.game_scence_last = YysScene.UNKNOW_SCENCE
-        self.targets = []
-        self.target_status = {}
+        self.scene_context = SceneContext()
         
-    def scence_update(self, founds):
+    def scene_update(self, founds):
         """
         场景更新
         """
-        if self.game_scence == YysScene.UNKNOW_SCENCE:
-            self.add_unique_target("login_tag", YysScene.LOGIN_SCENCE, False)
-            self.add_unique_target("login_enter_btn", YysScene.LOGIN_SCENCE, False)
-            self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
-            self.add_unique_target("index_explore_btn", YysScene.INDEX_SCENCE, False)
-            self.add_unique_target("explore_tag", YysScene.EXPLORE_SCENCE, False)
-            self.add_unique_target("index2_index_btn", YysScene.INDEX_2_SCENCE, False)
-        elif self.game_scence == YysScene.LOGIN_SCENCE:
-            self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
-            self.add_unique_target("index_explore_btn", YysScene.INDEX_SCENCE, False)
-        elif self.game_scence == YysScene.INDEX_SCENCE:
-            self.add_unique_target("explore_tag", YysScene.EXPLORE_SCENCE, False)
-            self.add_unique_target("index2_index_btn", YysScene.INDEX_2_SCENCE, False)
-        elif self.game_scence == YysScene.INDEX_2_SCENCE:
-            self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
-            self.add_unique_target("index_explore_btn", YysScene.INDEX_SCENCE, False)
-        elif self.game_scence == YysScene.EXPLORE_SCENCE:
-            self.add_unique_target("index_index2_btn", YysScene.INDEX_SCENCE, False)
-            self.add_unique_target("index_explore_btn", YysScene.INDEX_SCENCE, False)
-                
-        for target in self.targets:
-            if target in founds:
-                self.update_target_status(target, True)
-                self.scence_switch(self.target_status[target]['target_scene'])
-                break
-            else:
-                self.update_target_status(target, False)
+        self.scene_context.update(founds)
 
-    def update_target_status(self, target, found):
+    def get_scene_name(self):
         """
-        更新目标的找到状态。
+        获取当前场景名
         """
-        if target in self.target_status:
-            if self.target_status[target]['found'] != found:
-                self.target_status[target]['found'] = found
-                self.logger.info(f"更新目标状态: {target}, 状态: {'已找到' if found else '未找到'}")
-        else:
-            self.logger.error(f"目标 {target} 不存在，无法更新状态")
+        return self.scene_context.state.name_en
+    
+    def get_scene_targets(self):
+        """
+        获取当前场景目标
+        """
+        return self.scene_context.state.targets
         
-    def scence_switch(self, target_scence):
-        """
-        场景切换
-        """
-        self.game_scence_last = self.game_scence
-        self.game_scence = target_scence
-        self.targets.clear()    # 切换场景后清空目标
-        self.target_status.clear()  # 切换场景后清空状态
-        self.logger.info(f"场景更新至{target_scence.get_description('cn')}")
-        
-    def add_unique_target(self, target, target_scene = YysScene.UNKNOW_SCENCE, found = False):
-        """
-        添加不重复的目标到targets中。
-        """
-        if target not in self.targets:
-            self.targets.append(target)
-            self.target_status[target] = {
-                'target': target,
-                'found': found,
-                'target_scene': target_scene
-            }
-            self.logger.info(f"添加目标: {target}, 指向 {target_scene.get_description('cn')}")
                     
 class Application:
     """
@@ -103,7 +54,6 @@ class Application:
         self.key_listener = KeyListener(self)
         self.manager = yysManager()
         
-            
         self.target_window_title = self.config_loader.get("target_window_title")
         self.hook_window_title = self.config_loader.get("hook_window_title")
         self.new_width = self.config_loader.get("new_width")
@@ -159,7 +109,9 @@ class Application:
                         self.img_show = self.detector.process(img_origin)
                         
                         founds = []
-                        for target in self.manager.targets:
+                        targets = self.manager.get_scene_targets()
+                        # self.logger.debug(f"targets: {targets}")
+                        for target in targets:
                             result = self.detector.detect(img_origin, target)
                             if result != None:
                                 founds.append(target)
@@ -177,8 +129,8 @@ class Application:
 
                                 cv2.rectangle(self.img_show[self.current_index], mapped_top_left, mapped_bottom_right, (0, 0, 255), 1)
                                
-                        self.manager.scence_update(founds)
-                        self.scene_text = self.manager.game_scence.get_description('en')
+                        self.manager.scene_update(founds)
+                        self.scene_text = self.manager.get_scene_name()
 
                         # 轮廓检测
                         # contours, _ = cv2.findContours(img_canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)

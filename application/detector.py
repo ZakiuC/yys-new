@@ -5,6 +5,7 @@ import base64
 import os
 
 from tools.logger import LogManager
+from tools.image_processing import stack_images
 
 class ImageDetector:
     """
@@ -31,7 +32,7 @@ class ImageDetector:
         参数:
             img_origin: 原始图像
         返回:
-            匹配结果
+            处理后的图像组
         """
         # 调整图像大小以适应新的分辨率
         img_resize = cv2.resize(img_origin, (self.new_width, self.new_height))
@@ -41,7 +42,7 @@ class ImageDetector:
         img_canny = cv2.Canny(img_blur, 50, 50)
         img_blank = np.zeros_like(img_resize)
         img_contour = img_resize.copy()
-        img_stack = self.stack_images(0.6, ([img_resize, img_gray, img_blur], [img_canny, img_contour, img_blank]))
+        img_stack = stack_images(0.6, ([img_resize, img_gray, img_blur], [img_canny, img_contour, img_blank]))
 
         self.img_show = [img_resize, img_gray, img_blur, img_canny, img_contour, img_stack]
         return self.img_show
@@ -69,46 +70,6 @@ class ImageDetector:
             if template['name'] == name:
                 return template['file']
         return None
-    
-    def stack_images(self, scale, img_array):
-        """
-        将多个图像叠加在一起显示。
-        参数:
-            scale: 图像缩放比例
-            img_array: 需要叠加的图像数组
-        返回:
-            叠加后的图像
-        """
-        rows = len(img_array)
-        cols = len(img_array[0])
-        rows_available = isinstance(img_array[0], list)
-        width = img_array[0][0].shape[1]
-        height = img_array[0][0].shape[0]
-        if rows_available:
-            for x in range(0, rows):
-                for y in range(0, cols):
-                    if img_array[x][y].shape[:2] == img_array[0][0].shape[:2]:
-                        img_array[x][y] = cv2.resize(img_array[x][y], (0, 0), None, scale, scale)
-                    else:
-                        img_array[x][y] = cv2.resize(img_array[x][y], (img_array[0][0].shape[1], img_array[0][0].shape[0]), None, scale, scale)
-                    if len(img_array[x][y].shape) == 2:
-                        img_array[x][y] = cv2.cvtColor(img_array[x][y], cv2.COLOR_GRAY2BGR)
-            image_blank = np.zeros((height, width, 3), np.uint8)
-            hor = [image_blank]*rows
-            for x in range(0, rows):
-                hor[x] = np.hstack(img_array[x])
-            ver = np.vstack(hor)
-        else:
-            for x in range(0, rows):
-                if img_array[x].shape[:2] == img_array[0].shape[:2]:
-                    img_array[x] = cv2.resize(img_array[x], (0, 0), None, scale, scale)
-                else:
-                    img_array[x] = cv2.resize(img_array[x], (img_array[0].shape[1], img_array[0].shape[0]), None, scale, scale)
-                if len(img_array[x].shape) == 2:
-                    img_array[x] = cv2.cvtColor(img_array[x], cv2.COLOR_GRAY2BGR)
-            hor = np.hstack(img_array)
-            ver = hor
-        return ver
     
     def match(self, img, json_filename):
         """

@@ -49,6 +49,31 @@
             "name": "index2_index_btn",
             "file": "index2_index_btn.json",
             "description": "町中的返回庭院的按钮"
+        },
+        {
+            "name": "battle_ready_btn",
+            "file": "battle_ready_btn.json",
+            "description": "战斗准备阶段的“准备”按钮"
+        },
+        {
+            "name": "battle_preset_btn",
+            "file": "battle_preset_btn.json",
+            "description": "战斗准备阶段的“预设”按钮"
+        },
+        {
+            "name": "battle_auto_btn",
+            "file": "battle_auto_btn.json",
+            "description": "战斗中的“自动”按钮"
+        },
+        {
+            "name": "battle_back_btn",
+            "file": "battle_back_btn.json",
+            "description": "战斗中的“返回”按钮"
+        },
+        {
+            "name": "battle_clickContinue_tag",
+            "file": "battle_clickContinue_tag.json",
+            "description": "战斗结束经验结算界面的“点击屏幕继续”提示"
         }
     ]
 }

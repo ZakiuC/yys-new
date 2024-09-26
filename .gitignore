@@ -1,3 +1,10 @@
 .venv/
 log/
 todo list.md
+build/
+dist/
+__pycache__/
+
+tools-box/out/
+tools-box/config.json
+*.spec

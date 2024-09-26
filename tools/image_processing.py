@@ -27,37 +27,42 @@ def create_error_img(width, height, message):
         cv2.putText(img, message, (text_x, text_y), font, font_scale, font_color, font_thickness)
         return img
 
-def stack_imgs(scale, img_array):
+def stack_images(scale, img_array):
     """
-    将图像堆叠在一起以便于显示
-    scale: 缩放因子
-    imgArray: 图像列表
-
-    return: 堆叠后的图像
+    将多个图像叠加在一起显示。
+    参数:
+        scale: 图像缩放比例
+        img_array: 需要叠加的图像数组
+    返回:
+        叠加后的图像
     """
     rows = len(img_array)
     cols = len(img_array[0])
     rows_available = isinstance(img_array[0], list)
-    
-    # 确定合适的尺寸以调整图像
-    width = img_array[0][0].shape[1] * scale
-    height = img_array[0][0].shape[0] * scale
-    dim = (int(width), int(height))
-
+    width = img_array[0][0].shape[1]
+    height = img_array[0][0].shape[0]
     if rows_available:
-        for x in range(rows):
-            for y in range(cols):
-                # 调整图像尺寸
-                img_array[x][y] = cv2.resize(img_array[x][y], dim, interpolation=cv2.INTER_AREA)
+        for x in range(0, rows):
+            for y in range(0, cols):
+                if img_array[x][y].shape[:2] == img_array[0][0].shape[:2]:
+                    img_array[x][y] = cv2.resize(img_array[x][y], (0, 0), None, scale, scale)
+                else:
+                    img_array[x][y] = cv2.resize(img_array[x][y], (img_array[0][0].shape[1], img_array[0][0].shape[0]), None, scale, scale)
                 if len(img_array[x][y].shape) == 2:
                     img_array[x][y] = cv2.cvtColor(img_array[x][y], cv2.COLOR_GRAY2BGR)
-        # 堆叠处理
-        hor = [np.hstack(img_array[x]) for x in range(rows)]
+        image_blank = np.zeros((height, width, 3), np.uint8)
+        hor = [image_blank]*rows
+        for x in range(0, rows):
+            hor[x] = np.hstack(img_array[x])
         ver = np.vstack(hor)
     else:
-        for x in range(rows):
-            img_array[x] = cv2.resize(img_array[x], dim, interpolation=cv2.INTER_AREA)
+        for x in range(0, rows):
+            if img_array[x].shape[:2] == img_array[0].shape[:2]:
+                img_array[x] = cv2.resize(img_array[x], (0, 0), None, scale, scale)
+            else:
+                img_array[x] = cv2.resize(img_array[x], (img_array[0].shape[1], img_array[0].shape[0]), None, scale, scale)
             if len(img_array[x].shape) == 2:
                 img_array[x] = cv2.cvtColor(img_array[x], cv2.COLOR_GRAY2BGR)
-        ver = np.hstack(img_array)
+        hor = np.hstack(img_array)
+        ver = hor
     return ver
